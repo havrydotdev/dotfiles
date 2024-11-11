@@ -11,8 +11,15 @@
     ];
 
   # Bootloader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.grub.enable = true;
+  boot.loader.grub.device = "nodev";
+  boot.loader.grub.useOSProber = true;
+
+  boot.extraModulePackages = with config.boot.kernelPackages; [v4l2loopback.out];
+  boot.kernelModules = ["v4l2loopback"];
+  boot.extraModprobeConfig = ''
+     options v4l2loopback exclisive_caps=1 card_label="Virtual Camera"
+  ''; 
 
   networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -74,7 +81,7 @@
   users.users.havry = {
     isNormalUser = true;
     description = "Havrylenko Ivan";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "kvm" "adbusers" ];
     packages = with pkgs; [
     #  thunderbird
     ];
@@ -95,7 +102,10 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
+    extraPackages = with pkgs; [ libva vaapiVdpau libvdpau-va-gl libgpg-error ];
   };
+
+  programs.adb.enable = true;
 
   services.xserver.videoDrivers = ["nvidia"];
 
@@ -120,7 +130,7 @@
     # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus 
     # Only available from driver 515.43.04+
     # Currently alpha-quality/buggy, so false is currently the recommended setting.
-    open = false;
+    open = true;
 
     # Optionally, you may need to select the appropriate driver version for your specific GPU.
     package = config.boot.kernelPackages.nvidiaPackages.stable;
@@ -142,10 +152,13 @@
         nvchad = inputs.nvchad4nix.packages."${pkgs.system}".nvchad;
       })
     ];
-  }; 
+  };
 
   environment.systemPackages = with pkgs; [
-     pkgs.nvchad
+     nvchad
+     devenv
+     sqlc
+
      vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
      telegram-desktop
 
@@ -158,6 +171,12 @@
      bun	
      podman
      go-migrate
+
+     caligula
+
+     immersed-vr
+
+     android-tools
 
      python3
      python311Packages.pip
@@ -188,9 +207,6 @@
 
      templ
      bun
-     # zig
-     zig
-     zls
 
      # code editors
      vscode
