@@ -93,7 +93,9 @@
 
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.allowBroken = true;
- 
+  
+  nixpkgs.config.android_sdk.accept_license = true;
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.trusted-users = [ "root" "havry" ];
 
@@ -108,7 +110,7 @@
   programs.adb.enable = true;
 
   services.xserver.videoDrivers = ["nvidia"];
-
+  
   hardware.nvidia = {
     # Modesetting is required.
     modesetting.enable = true;
@@ -154,34 +156,46 @@
     ];
   };
 
+  programs.gamemode.enable = true;
+  virtualisation.docker.enable = true; 
+   
   environment.systemPackages = with pkgs; [
      nvchad
      devenv
-     sqlc
-
+     elmPackages.elm
      vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
      telegram-desktop
-
-     # beam 
-     erlang_26 
+     elmPackages.lamdera
+     elmPackages.elm-pages
+     zig
+     zls
+     bruno
+     nikto
+     metasploit
+     python312Packages.mypy
+     wine
+     heroic-unwrapped
+     winetricks
+     # beam
+     gradle
+     erlang_27 
      gleam 
      rebar3
      direnv
      elixir
-     bun	
      podman
      go-migrate
-
+     inotify-tools
      caligula
-
-     immersed-vr
+     jetbrains.idea-ultimate
 
      android-tools
+     android-studio
 
-     python3
+     python3Full
      python311Packages.pip
      ruff
-     
+     libglvnd
      pylint
      brave
 
@@ -205,9 +219,8 @@
      zip
      prismlauncher
 
-     templ
      bun
-
+     deno
      # code editors
      vscode
      vscode.fhs
@@ -217,7 +230,6 @@
      fastfetch
      unzip
      nodejs
-     inotify-tools
      alacritty
      git
      gnumake
@@ -232,12 +244,29 @@
   ];
 
   # fish configuration
-  programs.fish.enable = true;
+  programs.fish = {
+    enable = true;
+    interactiveShellInit = ''
+        direnv hook fish | source
+    '';
+    loginShellInit = ''
+        export LD_LIBRARY_PATH=${pkgs.libGL}/lib/
+    '';
+  };
+
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    # Add any missing dynamic libraries for unpackaged programs
+    # here, NOT in environment.systemPackages
+  ];
+
   programs.bash = {
     interactiveShellInit = ''
       if [[ $(${pkgs.procps}/bin/ps --no-header --pid=$PPID --format=comm) != "fish" && -z ''${BASH_EXECUTION_STRING} ]]
       then
         shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=""
+        export LD_LIBRARY_PATH=${pkgs.libGL}/lib
+        export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools
         exec ${pkgs.fish}/bin/fish $LOGIN_OPTION
       fi
     '';
